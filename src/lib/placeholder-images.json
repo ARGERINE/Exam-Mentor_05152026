@@ -1,0 +1,16 @@
+{
+  "placeholderImages": [
+    {
+      "id": "mentor-hero",
+      "description": "A calm, focused student studying in a modern minimalist room.",
+      "imageUrl": "https://picsum.photos/seed/exam-mentor/1200/800",
+      "imageHint": "minimalist student"
+    },
+    {
+      "id": "practice-session",
+      "description": "An interface showing a practice session with a supportive mentor character.",
+      "imageUrl": "https://picsum.photos/seed/practice/800/600",
+      "imageHint": "learning interface"
+    }
+  ]
+}

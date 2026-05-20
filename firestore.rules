@@ -1,0 +1,238 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * ExamMentor AI Security Rules
+     * 
+     * PHILOSOPHY:
+     * This ruleset implements a strict "User-Ownership" model combined with "Authorized Global Read" 
+     * for curriculum content. Security is enforced primarily through document paths, ensuring users 
+     * can only access data nested under their unique identifier (/users/{userId}).
+     * 
+     * DATA STRUCTURE:
+     * 1. Private User Data: All personal metrics, attempts, configurations, and AI-generated 
+     *    recommendations are stored under `/users/{userId}/...`.
+     * 2. Global Curriculum Data: Shared content like Exams, Subjects, Chapters, and Questions 
+     *    are stored in top-level collections, accessible by any authenticated user but 
+     *    modifiable only by system admins (denied by default here).
+     * 
+     * KEY SECURITY DECISIONS:
+     * - Path-Based Authorization: We use the {userId} wildcard in the path to verify 
+     *   ownership without expensive get() calls.
+     * - Relational Integrity: On creation of user-specific documents, we enforce that 
+     *   the 'userId' field in the data matches the path to prevent data spoofing.
+     * - Immutability: Critical relational fields like 'userId' are made immutable 
+     *   on update to maintain the integrity of the ownership model.
+     * - Existence Verification: All updates and deletes require the document to 
+     *   exist and the requester to be the established owner.
+     * 
+     * DENORMALIZATION FOR AUTHORIZATION:
+     * This architecture relies on denormalized data (e.g., storing 'userId' inside 
+     * subcollection documents) to allow for simple, high-performance rules that 
+     * validate identity against the authenticated request.
+     */
+
+    // --- Global Helper Functions ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // Validates that the data being written identifies the correct user based on the path
+    function matchesPath(userId) {
+      return request.resource.data.userId == userId;
+    }
+
+    // Validates that the 'userId' field is not changed during an update
+    function isUserIdImmutable() {
+      return request.resource.data.userId == resource.data.userId;
+    }
+
+    // --- User Profile & Dashboard KPIs ---
+
+    /**
+     * @description Access control for the root user profile and dashboard aggregates.
+     * @path /users/{userId}
+     * @allow (create) if auth.uid matches path and data.id matches path.
+     * @deny (get) if auth.uid does not match {userId}.
+     * @principle Ownership: Users manage their own profile and KPI summaries.
+     */
+    match /users/{userId} {
+      allow get, list: if isOwner(userId);
+      allow create: if isOwner(userId) && request.resource.data.id == userId;
+      allow update: if isExistingOwner(userId) && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(userId);
+
+      /**
+       * @description User-specific exam settings (target scores, dates).
+       * @path /users/{userId}/examConfigurations/{configId}
+       * @allow (update) if is owner and userId field remains unchanged.
+       * @deny (list) if not the authenticated owner of the parent path.
+       * @principle Relational Integrity: Ensures configurations belong to the specific user.
+       */
+      match /examConfigurations/{configId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Records of individual question attempts.
+       * @path /users/{userId}/questionAttempts/{attemptId}
+       * @allow (get) if user is owner.
+       * @deny (create) if userId in data doesn't match path.
+       * @principle Path Consistency: Forces data to align with secure hierarchy.
+       */
+      match /questionAttempts/{attemptId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Records of full exam or sectional test attempts.
+       * @path /users/{userId}/examAttempts/{attemptId}
+       * @allow (list) if authenticated owner.
+       * @deny (delete) if document doesn't exist or owner mismatch.
+       * @principle Robustness: Verifies existence before destructive operations.
+       */
+      match /examAttempts/{attemptId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Aggregated performance metrics per chapter.
+       * @path /users/{userId}/chapterPerformance/{chapterId}
+       * @allow (get) for owner to see progress.
+       * @deny (update) attempted by different user.
+       * @principle Ownership: Restricted to the specific user's progress.
+       */
+      match /chapterPerformance/{chapterId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Performance metrics grouped by question format/type.
+       * @path /users/{userId}/questionTypePerformance/{questionTypeId}
+       * @allow (create) if userId in body matches path.
+       * @deny (write) if not signed in.
+       * @principle Verified Identity: Uses request.auth as source of truth.
+       */
+      match /questionTypePerformance/{questionTypeId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Personalized revision queue items.
+       * @path /users/{userId}/revisionItems/{revisionItemId}
+       * @allow (list) for user to populate revision UI.
+       * @deny (get) for non-owners.
+       * @principle Query Security: List restricted to owner-scoped path.
+       */
+      match /revisionItems/{revisionItemId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description Historical records of user's psychological state.
+       * @path /users/{userId}/psychologicalStates/{stateId}
+       * @allow (get) owner reading their own state.
+       * @deny (create) if trying to inject data for another user.
+       * @principle Structural Segregation: Private data kept under user tree.
+       */
+      match /psychologicalStates/{stateId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+
+      /**
+       * @description AI-recommended study tasks for the user.
+       * @path /users/{userId}/nextBestActions/{actionId}
+       * @allow (update) if owner (e.g., marking as completed).
+       * @deny (list) if request.auth.uid != userId.
+       * @principle Ownership: Recommendations are private and user-specific.
+       */
+      match /nextBestActions/{actionId} {
+        allow get, list: if isOwner(userId);
+        allow create: if isOwner(userId) && matchesPath(userId);
+        allow update: if isExistingOwner(userId) && isUserIdImmutable();
+        allow delete: if isExistingOwner(userId);
+      }
+    }
+
+    // --- Global Curriculum Content (Read-Only) ---
+
+    /**
+     * @description Global collection of exams.
+     * @path /exams/{examId}
+     * @allow (get, list) if user is signed in.
+     * @deny (write) for all users (Admin only).
+     * @principle Read-Only: Curriculum data is managed outside client rules.
+     */
+    match /exams/{examId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Global collection of academic subjects.
+     * @path /subjects/{subjectId}
+     * @allow (get, list) if user is signed in.
+     * @deny (write) for all users.
+     * @principle Read-Only: Curriculum data is managed outside client rules.
+     */
+    match /subjects/{subjectId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Global collection of chapters/topics.
+     * @path /chapters/{chapterId}
+     * @allow (get, list) if user is signed in.
+     * @deny (write) for all users.
+     * @principle Read-Only: Curriculum data is managed outside client rules.
+     */
+    match /chapters/{chapterId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+
+    /**
+     * @description Global collection of practice questions.
+     * @path /questions/{questionId}
+     * @allow (get, list) if user is signed in.
+     * @deny (write) for all users.
+     * @principle Read-Only: Curriculum data is managed outside client rules.
+     */
+    match /questions/{questionId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if false;
+    }
+  }
+}

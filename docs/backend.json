@@ -1,0 +1,887 @@
+{
+  "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "type": "object",
+      "description": "Represents a user's basic profile information within the ExamMentor AI application. Assumes external authentication.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserProfile entity."
+        },
+        "email": {
+          "type": "string",
+          "description": "The user's email address.",
+          "format": "email"
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the user."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user profile was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "email",
+        "name",
+        "createdAt"
+      ]
+    },
+    "Exam": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Exam",
+      "type": "object",
+      "description": "Defines a specific competitive exam supported by the platform (e.g., NEET, JEE, GATE).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Exam entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The common name or abbreviation of the exam (e.g., 'NEET', 'JEE Main')."
+        },
+        "fullForm": {
+          "type": "string",
+          "description": "The full name of the exam (e.g., 'National Eligibility cum Entrance Test')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the exam."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "fullForm",
+        "description"
+      ]
+    },
+    "Subject": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Subject",
+      "type": "object",
+      "description": "Represents an academic subject within a particular exam (e.g., Physics, Organic Chemistry).",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Subject entity."
+        },
+        "examId": {
+          "type": "string",
+          "description": "Reference to the Exam this subject belongs to. (Relationship: Exam 1:N Subject)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the subject (e.g., 'Physics', 'Mathematics')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the subject."
+        }
+      },
+      "required": [
+        "id",
+        "examId",
+        "name",
+        "description"
+      ]
+    },
+    "Chapter": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Chapter",
+      "type": "object",
+      "description": "Represents a specific chapter or topic within a subject.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Chapter entity."
+        },
+        "subjectId": {
+          "type": "string",
+          "description": "Reference to the Subject this chapter belongs to. (Relationship: Subject 1:N Chapter)"
+        },
+        "name": {
+          "type": "string",
+          "description": "The name of the chapter (e.g., 'Kinematics', 'Chemical Bonding')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the chapter content."
+        }
+      },
+      "required": [
+        "id",
+        "subjectId",
+        "name",
+        "description"
+      ]
+    },
+    "Question": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Question",
+      "type": "object",
+      "description": "Stores the details of a single practice question.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Question entity."
+        },
+        "chapterId": {
+          "type": "string",
+          "description": "Reference to the Chapter this question belongs to. (Relationship: Chapter 1:N Question)"
+        },
+        "questionText": {
+          "type": "string",
+          "description": "The actual text content of the question."
+        },
+        "options": {
+          "type": "array",
+          "description": "An array of possible answer options for the question.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "correctOptionIndex": {
+          "type": "number",
+          "description": "The zero-based index of the correct answer option in the 'options' array."
+        },
+        "difficultyLevel": {
+          "type": "string",
+          "description": "The perceived difficulty level of the question (e.g., 'Easy', 'Medium', 'Hard')."
+        },
+        "questionType": {
+          "type": "string",
+          "description": "The category or format of the question (e.g., 'MCQ Single Correct', 'Assertion Reason', 'Numerical Answer')."
+        },
+        "topicTags": {
+          "type": "array",
+          "description": "An array of keywords or tags for finer topic categorization within a chapter.",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "chapterId",
+        "questionText",
+        "options",
+        "correctOptionIndex",
+        "difficultyLevel",
+        "questionType"
+      ]
+    },
+    "UserExamConfiguration": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserExamConfiguration",
+      "type": "object",
+      "description": "Stores a user's personalized settings and goals for a specific exam.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserExamConfiguration entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who owns this configuration. (Relationship: UserProfile 1:N UserExamConfiguration)"
+        },
+        "examId": {
+          "type": "string",
+          "description": "Reference to the Exam for which this configuration applies. (Relationship: Exam 1:N UserExamConfiguration)"
+        },
+        "targetScore": {
+          "type": "number",
+          "description": "The user's desired target score for the selected exam."
+        },
+        "dailyStudyHours": {
+          "type": "number",
+          "description": "The number of hours the user commits to studying daily."
+        },
+        "examDate": {
+          "type": "string",
+          "description": "The target date for the user to take the exam.",
+          "format": "date"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "examId",
+        "targetScore",
+        "dailyStudyHours",
+        "examDate"
+      ]
+    },
+    "QuestionAttempt": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "QuestionAttempt",
+      "type": "object",
+      "description": "Records a single attempt by a user on a specific question, capturing performance metrics.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the QuestionAttempt entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who made the attempt. (Relationship: UserProfile 1:N QuestionAttempt)"
+        },
+        "questionId": {
+          "type": "string",
+          "description": "Reference to the Question that was attempted. (Relationship: Question 1:N QuestionAttempt)"
+        },
+        "examAttemptId": {
+          "type": "string",
+          "description": "Optional reference to the ExamAttempt if this question was part of a larger test. (Relationship: ExamAttempt 1:N QuestionAttempt)"
+        },
+        "selectedOptionIndex": {
+          "type": "number",
+          "description": "The zero-based index of the option selected by the user."
+        },
+        "isCorrect": {
+          "type": "boolean",
+          "description": "Indicates whether the user's attempt was correct."
+        },
+        "timeTakenSeconds": {
+          "type": "number",
+          "description": "The time, in seconds, the user spent on this question."
+        },
+        "attemptedAt": {
+          "type": "string",
+          "description": "Timestamp when the question was attempted.",
+          "format": "date-time"
+        },
+        "attemptType": {
+          "type": "string",
+          "description": "The context of the attempt (e.g., 'Practice', 'Mock', 'Sectional')."
+        },
+        "confidenceLevel": {
+          "type": "string",
+          "description": "User's self-reported confidence level when answering (e.g., 'Low', 'Medium', 'High')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "questionId",
+        "selectedOptionIndex",
+        "isCorrect",
+        "timeTakenSeconds",
+        "attemptedAt",
+        "attemptType"
+      ]
+    },
+    "ExamAttempt": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "ExamAttempt",
+      "type": "object",
+      "description": "Records a user's overall performance in a mock exam or a sectional test.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the ExamAttempt entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who took the exam. (Relationship: UserProfile 1:N ExamAttempt)"
+        },
+        "examId": {
+          "type": "string",
+          "description": "Reference to the Exam this attempt is for. (Relationship: Exam 1:N ExamAttempt)"
+        },
+        "attemptType": {
+          "type": "string",
+          "description": "The type of attempt (e.g., 'Mock', 'Sectional')."
+        },
+        "score": {
+          "type": "number",
+          "description": "The total score obtained in this attempt."
+        },
+        "totalQuestions": {
+          "type": "number",
+          "description": "The total number of questions in the exam/sectional."
+        },
+        "correctAnswers": {
+          "type": "number",
+          "description": "The count of questions answered correctly."
+        },
+        "incorrectAnswers": {
+          "type": "number",
+          "description": "The count of questions answered incorrectly."
+        },
+        "unattemptedQuestions": {
+          "type": "number",
+          "description": "The count of questions that were not attempted."
+        },
+        "timeTakenMinutes": {
+          "type": "number",
+          "description": "The total time, in minutes, spent on the exam/sectional."
+        },
+        "attemptedAt": {
+          "type": "string",
+          "description": "Timestamp when the exam/sectional was attempted.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "examId",
+        "attemptType",
+        "score",
+        "totalQuestions",
+        "correctAnswers",
+        "incorrectAnswers",
+        "unattemptedQuestions",
+        "timeTakenMinutes",
+        "attemptedAt"
+      ]
+    },
+    "UserChapterPerformance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserChapterPerformance",
+      "type": "object",
+      "description": "Aggregates a user's performance and progress metrics for a specific chapter.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserChapterPerformance entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile. (Relationship: UserProfile 1:N UserChapterPerformance)"
+        },
+        "chapterId": {
+          "type": "string",
+          "description": "Reference to the Chapter. (Relationship: Chapter 1:N UserChapterPerformance)"
+        },
+        "totalQuestionsAttempted": {
+          "type": "number",
+          "description": "The total number of questions from this chapter attempted by the user."
+        },
+        "correctQuestions": {
+          "type": "number",
+          "description": "The count of questions answered correctly from this chapter."
+        },
+        "accuracyPercentage": {
+          "type": "number",
+          "description": "The calculated accuracy percentage for this chapter (0-100)."
+        },
+        "averageTimePerQuestionSeconds": {
+          "type": "number",
+          "description": "The average time spent by the user on questions from this chapter."
+        },
+        "lastAttemptedAt": {
+          "type": "string",
+          "description": "Timestamp of the most recent question attempt in this chapter.",
+          "format": "date-time"
+        },
+        "chapterCompletionStatus": {
+          "type": "string",
+          "description": "The current completion status of the chapter (e.g., 'Not Started', 'In Progress', 'Completed')."
+        },
+        "performanceTrend": {
+          "type": "string",
+          "description": "An indicator of recent performance trend (e.g., 'Improving', 'Stable', 'Declining')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "chapterId",
+        "totalQuestionsAttempted",
+        "correctQuestions",
+        "accuracyPercentage",
+        "averageTimePerQuestionSeconds",
+        "chapterCompletionStatus",
+        "performanceTrend"
+      ]
+    },
+    "RevisionItem": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "RevisionItem",
+      "type": "object",
+      "description": "Represents an item (question or chapter) added to a user's revision queue.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the RevisionItem entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile who needs to revise this item. (Relationship: UserProfile 1:N RevisionItem)"
+        },
+        "questionId": {
+          "type": "string",
+          "description": "Optional reference to the Question if the revision item is a specific question. (Relationship: Question 1:N RevisionItem)"
+        },
+        "chapterId": {
+          "type": "string",
+          "description": "Optional reference to the Chapter if the revision item is an entire chapter. (Relationship: Chapter 1:N RevisionItem)"
+        },
+        "itemType": {
+          "type": "string",
+          "description": "Specifies whether the item for revision is a 'Question' or a 'Chapter'."
+        },
+        "reasonForRevision": {
+          "type": "string",
+          "description": "The reason why this item was flagged for revision (e.g., 'Low Accuracy', 'Forgotten Topic')."
+        },
+        "priorityLevel": {
+          "type": "string",
+          "description": "The priority level for revising this item (e.g., 'High', 'Medium', 'Low')."
+        },
+        "addedAt": {
+          "type": "string",
+          "description": "Timestamp when the item was added to the revision queue.",
+          "format": "date-time"
+        },
+        "lastReviewedAt": {
+          "type": "string",
+          "description": "Optional timestamp of the last time this item was reviewed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "itemType",
+        "reasonForRevision",
+        "priorityLevel",
+        "addedAt"
+      ]
+    },
+    "UserPsychologicalState": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserPsychologicalState",
+      "type": "object",
+      "description": "Captures and interprets a user's current psychological state relevant to their study and performance.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the UserPsychologicalState entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile. (Relationship: UserProfile 1:N UserPsychologicalState)"
+        },
+        "anxietyLevel": {
+          "type": "string",
+          "description": "Current assessment of the user's anxiety level (e.g., 'Low', 'Medium', 'High')."
+        },
+        "focusLevel": {
+          "type": "string",
+          "description": "Current assessment of the user's focus level (e.g., 'Low', 'Medium', 'High')."
+        },
+        "burnoutRisk": {
+          "type": "string",
+          "description": "Assessment of the user's risk of burnout (e.g., 'Low', 'Medium', 'High')."
+        },
+        "confidenceMismatchRisk": {
+          "type": "string",
+          "description": "Assessment of potential mismatch between self-reported confidence and actual performance (e.g., 'Low', 'Medium', 'High')."
+        },
+        "retentionDecayRisk": {
+          "type": "string",
+          "description": "Assessment of the risk of forgetting previously learned material (e.g., 'Low', 'Medium', 'High')."
+        },
+        "reportedAt": {
+          "type": "string",
+          "description": "Timestamp when this psychological state was assessed/reported.",
+          "format": "date-time"
+        },
+        "interpretation": {
+          "type": "string",
+          "description": "A human-readable interpretation of the psychological state, generated by AI (e.g., 'Low anxiety, but confidence unstable in Physics')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "anxietyLevel",
+        "focusLevel",
+        "burnoutRisk",
+        "confidenceMismatchRisk",
+        "retentionDecayRisk",
+        "reportedAt",
+        "interpretation"
+      ]
+    },
+    "NextBestAction": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "NextBestAction",
+      "type": "object",
+      "description": "Represents an AI-generated recommendation for the user's most impactful next study task.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the NextBestAction entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile for whom this action is recommended. (Relationship: UserProfile 1:N NextBestAction)"
+        },
+        "actionType": {
+          "type": "string",
+          "description": "The type of action recommended (e.g., 'Revise Chapter', 'Practice Question Type', 'Attempt Sectional Exam')."
+        },
+        "targetChapterId": {
+          "type": "string",
+          "description": "Optional reference to a Chapter if the action involves a specific chapter."
+        },
+        "targetQuestionType": {
+          "type": "string",
+          "description": "Optional string identifying a specific question type if the action involves practicing a type (e.g., 'Assertion Reason')."
+        },
+        "targetExamId": {
+          "type": "string",
+          "description": "Optional reference to an Exam if the action involves taking a sectional or mock exam."
+        },
+        "reason": {
+          "type": "string",
+          "description": "A human-readable explanation of why this action is recommended (e.g., 'low accuracy 42%')."
+        },
+        "impact": {
+          "type": "string",
+          "description": "A human-readable explanation of the expected improvement from taking this action."
+        },
+        "generatedAt": {
+          "type": "string",
+          "description": "Timestamp when this action was generated.",
+          "format": "date-time"
+        },
+        "isCompleted": {
+          "type": "boolean",
+          "description": "Indicates if the user has completed this recommended action."
+        },
+        "completedAt": {
+          "type": "string",
+          "description": "Optional timestamp when the action was completed.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "actionType",
+        "reason",
+        "impact",
+        "generatedAt",
+        "isCompleted"
+      ]
+    },
+    "QuestionTypePerformance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "QuestionTypePerformance",
+      "type": "object",
+      "description": "Aggregates a user's performance metrics for specific question types across an exam or globally.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the QuestionTypePerformance entity."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Reference to the UserProfile. (Relationship: UserProfile 1:N QuestionTypePerformance)"
+        },
+        "examId": {
+          "type": "string",
+          "description": "Reference to the Exam this performance data is contextualized to. (Relationship: Exam 1:N QuestionTypePerformance)"
+        },
+        "questionType": {
+          "type": "string",
+          "description": "The specific type of question (e.g., 'Assertion Reason', 'MCQ Single Correct')."
+        },
+        "totalAttempted": {
+          "type": "number",
+          "description": "Total number of questions of this type attempted by the user."
+        },
+        "correctAttempts": {
+          "type": "number",
+          "description": "Count of correct attempts for this question type."
+        },
+        "accuracyPercentage": {
+          "type": "number",
+          "description": "Calculated accuracy percentage for this question type (0-100)."
+        },
+        "averageTimeSeconds": {
+          "type": "number",
+          "description": "Average time spent by the user on questions of this type."
+        },
+        "lastUpdated": {
+          "type": "string",
+          "description": "Timestamp of the last update to this performance summary.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "examId",
+        "questionType",
+        "totalAttempted",
+        "correctAttempts",
+        "accuracyPercentage",
+        "averageTimeSeconds",
+        "lastUpdated"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/users/{userId}",
+        "definition": {
+          "entityName": "UserProfile",
+          "schema": {
+            "$ref": "#/backend/entities/UserProfile"
+          },
+          "description": "Root document for a user's profile and aggregated dashboard KPIs. Includes denormalized fields like 'totalChaptersCompletedCount', 'totalQuestionsSolvedCount', 'examsTakenCount', 'globalMockAccuracy', 'last7DaysPerformanceTrend', 'weakestChapterSummary', 'weakestQuestionTypeSummary', and 'timeManagementSummary' for efficient dashboard loading.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user, matching 'request.auth.uid'."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/examConfigurations/{configId}",
+        "definition": {
+          "entityName": "UserExamConfiguration",
+          "schema": {
+            "$ref": "#/backend/entities/UserExamConfiguration"
+          },
+          "description": "User's personalized settings and goals for a specific exam.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "configId",
+              "description": "The unique identifier for the user's exam configuration."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/questionAttempts/{attemptId}",
+        "definition": {
+          "entityName": "QuestionAttempt",
+          "schema": {
+            "$ref": "#/backend/entities/QuestionAttempt"
+          },
+          "description": "Records a single attempt by a user on a specific question. Includes denormalized 'questionDifficultyLevel', 'questionType', 'questionChapterId', 'questionSubjectId', and 'questionExamId' for robust querying and filtering.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "attemptId",
+              "description": "The unique identifier for the question attempt."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/examAttempts/{attemptId}",
+        "definition": {
+          "entityName": "ExamAttempt",
+          "schema": {
+            "$ref": "#/backend/entities/ExamAttempt"
+          },
+          "description": "Records a user's overall performance in a mock exam or sectional test.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "attemptId",
+              "description": "The unique identifier for the exam attempt."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/chapterPerformance/{chapterId}",
+        "definition": {
+          "entityName": "UserChapterPerformance",
+          "schema": {
+            "$ref": "#/backend/entities/UserChapterPerformance"
+          },
+          "description": "Aggregated performance data for a user on a specific chapter. Includes denormalized 'chapterName', 'subjectId', and 'examId' for context in queries and UI.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "chapterId",
+              "description": "The unique identifier for the chapter."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/questionTypePerformance/{questionTypeId}",
+        "definition": {
+          "entityName": "QuestionTypePerformance",
+          "schema": {
+            "$ref": "#/backend/entities/QuestionTypePerformance"
+          },
+          "description": "Aggregated performance metrics for a user on a specific question type, contextualized by exam.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "questionTypeId",
+              "description": "The unique identifier representing the question type (e.g., 'AssertionReason')."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/revisionItems/{revisionItemId}",
+        "definition": {
+          "entityName": "RevisionItem",
+          "schema": {
+            "$ref": "#/backend/entities/RevisionItem"
+          },
+          "description": "A user's personalized queue of items (questions or chapters) needing revision. Includes denormalized 'targetChapterName' (if chapter) or 'targetQuestionText' (if question) for direct UI rendering.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "revisionItemId",
+              "description": "The unique identifier for the revision item."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/psychologicalStates/{stateId}",
+        "definition": {
+          "entityName": "UserPsychologicalState",
+          "schema": {
+            "$ref": "#/backend/entities/UserPsychologicalState"
+          },
+          "description": "Historical or current psychological state assessment and AI-generated interpretation for the user.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "stateId",
+              "description": "The unique identifier for the psychological state record."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/users/{userId}/nextBestActions/{actionId}",
+        "definition": {
+          "entityName": "NextBestAction",
+          "schema": {
+            "$ref": "#/backend/entities/NextBestAction"
+          },
+          "description": "AI-generated actionable tasks for the user, including the 'reason' and 'impact' for the recommendation.",
+          "params": [
+            {
+              "name": "userId",
+              "description": "The unique identifier of the user."
+            },
+            {
+              "name": "actionId",
+              "description": "The unique identifier for the recommended action."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/exams/{examId}",
+        "definition": {
+          "entityName": "Exam",
+          "schema": {
+            "$ref": "#/backend/entities/Exam"
+          },
+          "description": "Global collection of competitive exams supported by the platform. Read-only for authenticated users.",
+          "params": [
+            {
+              "name": "examId",
+              "description": "The unique identifier for the exam."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/subjects/{subjectId}",
+        "definition": {
+          "entityName": "Subject",
+          "schema": {
+            "$ref": "#/backend/entities/Subject"
+          },
+          "description": "Global collection of academic subjects. Includes 'examId' for relationship context. Read-only for authenticated users.",
+          "params": [
+            {
+              "name": "subjectId",
+              "description": "The unique identifier for the subject."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/chapters/{chapterId}",
+        "definition": {
+          "entityName": "Chapter",
+          "schema": {
+            "$ref": "#/backend/entities/Chapter"
+          },
+          "description": "Global collection of chapters or topics. Includes 'subjectId' for relationship context. Read-only for authenticated users.",
+          "params": [
+            {
+              "name": "chapterId",
+              "description": "The unique identifier for the chapter."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/questions/{questionId}",
+        "definition": {
+          "entityName": "Question",
+          "schema": {
+            "$ref": "#/backend/entities/Question"
+          },
+          "description": "Global collection of practice questions. Includes 'chapterId' for relationship context. Read-only for authenticated users.",
+          "params": [
+            {
+              "name": "questionId",
+              "description": "The unique identifier for the question."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to be secure, scalable, and highly debuggable by adhering to core design principles, especially Authorization Independence and Structural Segregation. All user-specific data is organized under a top-level `/users/{userId}` collection, leveraging path-based ownership. This ensures that security rules are simple and atomic: a user can only access documents where `request.auth.uid` matches the `{userId}` wildcard in the path, eliminating the need for `get()` calls for authorization logic. \n\n**Authorization Independence via Denormalization:**\nTo support the dashboard's `list` operations (QAPs) and prevent `get()` calls in rules, critical data required for display or filtering is denormalized within the relevant documents. For example:\n*   The `/users/{userId}` document itself will store aggregated Key Performance Indicators (KPIs) like `totalChaptersCompletedCount`, `totalQuestionsSolvedCount`, `examsTakenCount`, and `globalMockAccuracy`. This allows the main dashboard KPIs to be fetched with a single, highly performant `get()` operation on the user's root document, directly satisfying the user's identity requirement (`request.auth.uid == userId`). Trend indicators and high-level summaries are also stored here, updated by backend processes.\n*   `QuestionAttempt` documents will include denormalized fields like `questionDifficultyLevel`, `questionType`, `questionChapterId`, `questionSubjectId`, and `questionExamId`. This allows complex filtering and aggregation for error patterns and time management without requiring security rules to perform cross-collection lookups, making `list` operations on `/users/{userId}/questionAttempts` efficient and secure.\n*   `UserChapterPerformance` documents will include `chapterName`, `subjectId`, and `examId` to provide context for 'Weakness Snapshot' and 'Revision Queue' displays without needing to `get()` chapter or subject details separately for each performance record.\n*   `RevisionItem` documents will denormalize `targetChapterName` or `targetQuestionText`, along with their IDs, allowing the UI to render revision items directly from a `list` query on `/users/{userId}/revisionItems`, fulfilling the QAP for revision queues.\n*   `NextBestAction` and `UserPsychologicalState` entities inherently contain `reason`, `impact`, and `interpretation` fields, which are directly accessible upon fetching the documents from their user-scoped collections.\n\n**Structural Segregation for QAPs:**\n*   **Private User Data:** All personalized and sensitive data (attempts, performance, configurations, recommendations, psychological states, revision queues) is strictly segregated under `/users/{userId}/`. This allows for straightforward security rules that grant read/write access only to the authenticated user whose UID matches the path's wildcard.\n*   **Global Content Data:** Static content like `Exams`, `Subjects`, `Chapters`, and `Questions` are placed in top-level, separate collections (e.g., `/exams`, `/subjects`). These are typically read-only for all authenticated users, simplifying their security posture and preventing accidental data modification. This segregation ensures that `list` operations on content collections are globally accessible (if desired) without interfering with user-specific data access rules.\n\nThis architecture ensures that the dashboard components, from KPIs to dynamic recommendations and weakness snapshots, can be populated efficiently and securely. Rules will primarily check for `request.auth.uid == userId` for private data, and broader read permissions for global content, without complex or performance-hindering `get()` operations for authorization."
+  }
+}
