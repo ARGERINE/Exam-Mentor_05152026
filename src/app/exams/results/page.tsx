@@ -93,7 +93,7 @@ type FilterType = 'All' | 'Incorrect' | 'Overconfident' | 'Concept Gap' | 'Lucky
 function ResultsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const attemptId = searchParams.get('attemptId')
+  const attemptId = searchParams.get('attempt_id')
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -118,31 +118,35 @@ function ResultsContent() {
         if (!supabase) throw new Error('Intelligence core disconnected.')
 
         const { data: attempt, error: attemptErr } = await supabase
-          .from('exam_attempts')
-          .select('*')
-          .eq('id', attemptId)
-          .single()
+        .from('attempts')
+        .select('*')
+        .eq('attempt_id', attemptId)
+        .single()
 
         if (attemptErr || !attempt) throw new Error('Attempt not found.')
 
         const { data: answers, error: answersErr } = await supabase
-          .from('attempt_answers')
-          .select(`
-            *,
-            questions:question_id (
-              id,
-              question_text,
-              correct_option,
-              explanation,
-              expected_time_seconds,
-              subject_id,
-              chapter_id,
-              difficulty,
-              taxonomy_category
-            )
-          `)
-          .eq('attempt_id', attemptId)
-          .order('attempted_at', { ascending: true })
+  .from('attempt_questions')
+  .select(`
+    sequence,
+    selected_option,
+    correct_option,
+    confidence_level,
+    time_taken_seconds,
+    questions:question_id (
+  id,
+  question_text,
+  correct_option,
+  explanation,
+  expected_time_seconds,
+  subject_id,
+  chapter_id,
+  difficulty,
+  taxonomy_category
+)
+  `)
+  .eq('attempt_id', attemptId)
+  .order('sequence', { ascending: true })
 
         if (answersErr) throw answersErr
 
@@ -154,23 +158,47 @@ function ResultsContent() {
             const q = ans.questions
             if (!q) return null
 
-            const status = ans.is_correct ? 'correct' : (ans.selected_option ? 'incorrect' : 'skipped')
-            const timeTaken = ans.time_spent ?? 0
+            const isCorrect =
+            ans.selected_option &&
+            ans.selected_option === q.correct_option
+
+            const status = isCorrect
+            ? 'correct'
+            : (ans.selected_option ? 'incorrect' : 'skipped')
+
+            const timeTaken = ans.time_taken_seconds ?? 0
             const expectedTime = q.expected_time_seconds || 60
-            const tag = ans.behavior_tag
+            
+            let tag = 'standard'
 
-            if (status === 'correct') correct++
-            else if (status === 'incorrect') incorrect++
-            else skipped++
+if (isCorrect && ans.confidence_level === 'HIGH') {
+  tag = 'mastery'
+}
+else if (isCorrect && ans.confidence_level === 'LOW') {
+  tag = 'lucky_guess'
+}
+else if (!isCorrect && ans.confidence_level === 'HIGH') {
+  tag = 'overconfident'
+}
+else if (!isCorrect && timeTaken > expectedTime * 1.3) {
+  tag = 'concept_gap'
+}
+else if (isCorrect && timeTaken > expectedTime * 1.3) {
+  tag = 'correct_slow'
+}
 
-            totalTime += timeTaken
-            totalExpectedTime += expectedTime
+if (status === 'correct') correct++
+else if (status === 'incorrect') incorrect++
+else skipped++
 
-            if (tag === 'mastery') mastery++
-            if (tag === 'lucky_guess') luckyGuess++
-            if (tag === 'overconfident') overconfident++
-            if (tag === 'concept_gap') conceptGap++
-            if (tag === 'correct_slow') correctSlow++
+totalTime += timeTaken
+totalExpectedTime += expectedTime
+
+if (tag === 'mastery') mastery++
+if (tag === 'lucky_guess') luckyGuess++
+if (tag === 'overconfident') overconfident++
+if (tag === 'concept_gap') conceptGap++
+if (tag === 'correct_slow') correctSlow++
 
             return {
               id: q.id,
@@ -178,7 +206,7 @@ function ResultsContent() {
               status,
               userAnswer: ans.selected_option || '—',
               correctAnswer: q.correct_option,
-              confidence: ans.confidence || 'Moderate',
+              confidence: ans.confidence_level || 'MEDIUM',
               time: `${timeTaken}s`,
               timeSeconds: timeTaken,
               explanation: q.explanation || "Derivation logic follows standard conceptual patterns.",
@@ -209,10 +237,27 @@ function ResultsContent() {
           { label: 'Latency in familiar topics', count: correctSlow }
         ].sort((a, b) => b.count - a.count)
 
+        const finalScore = (correct * 4) - incorrect
+
+const finalAccuracy =
+  attempted > 0
+    ? Math.round((correct / attempted) * 100)
+    : 0
+
+await supabase
+  .from('attempts')
+  .update({
+    total_score: finalScore,
+    accuracy: finalAccuracy,
+    evaluation_completed_at: new Date().toISOString(),
+    attempt_status: 'EVALUATED',
+  })
+  .eq('attempt_id', attemptId)
+
         setResultsData({
           examName: attempt.attempt_type ? `${attempt.attempt_type} Result` : 'NEET Simulation',
-          score: attempt.earned_marks ?? 0,
-          totalScore: attempt.total_marks ?? mappedQuestions.length * 4,
+          score: (correct * 4) - incorrect,
+          totalScore: mappedQuestions.length * 4,
           accuracy: attempted > 0 ? Math.round((correct / attempted) * 100) : 0,
           attemptedCount: attempted,
           correctCount: correct,
@@ -223,7 +268,7 @@ function ResultsContent() {
           totalTimeSpent: `${Math.round(totalTime / 60)}m`,
           questions: mappedQuestions,
           behaviorCounts,
-          behavioralSummary: attempt.performance_analysis || "Stable foundations with minor speed bottlenecks.",
+          behavioralSummary: "Behavioral evaluation generated from live attempt analytics.",
           primaryRiskPattern: risks[0].count > 0 ? risks[0].label : "No critical risks detected",
           riskCount: risks[0].count
         })

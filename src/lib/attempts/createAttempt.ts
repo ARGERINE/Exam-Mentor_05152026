@@ -1,73 +1,40 @@
-import { supabase } from '@/lib/supabase/client'
+import { getSupabase } from '@/lib/supabase/client'
 
 export async function createAttempt({
-  examCode,
-  attemptType,
-  config
+  examId,
 }: {
-  examCode: string
-
-  attemptType:
-    | 'practice'
-    | 'mock'
-    | 'sectional'
-    | 'custom'
-
-  config?: {
-    questions?: number
-    duration?: number
-
-    subject?: {
-      id?: string
-      name?: string
-    }
-
-    difficulty?: 'easy' | 'medium' | 'hard' | 'mixed'
-
-    chapters?: string[]
-  }
+  examId: string
 }) {
 
-  // ✅ Fallback mode
+  const supabase = getSupabase()
+
   if (!supabase) {
-    const fakeAttemptId = 'attempt_' + Date.now()
+    throw new Error('Supabase unavailable')
+  }
 
-    console.log("Fallback attempt:", fakeAttemptId)
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser()
 
-    return {
-      id: fakeAttemptId,
-      isFallback: true
+  if (userError || !user) {
+    throw new Error('User not authenticated')
+  }
+
+  const { data, error } = await supabase.rpc(
+    'generate_mock_attempt',
+    {
+      p_user_id: user.id,
+      p_exam_id: examId,
     }
-  }
-
-  // ✅ Real mode
-  const { data: userData } = await supabase.auth.getUser()
-  const user = userData?.user
-
-  if (!user) {
-    throw new Error("User not authenticated")
-  }
-
-  const { data, error } = await supabase
-    .from('attempts')
-    .insert({
-  user_id: user.id,
-  exam_code: examCode,
-  attempt_type: attemptType,
-  status: 'IN_PROGRESS',
-  started_at: new Date().toISOString(),
-
-  config: config ?? null,
-})
-    .select()
-    .single()
+  )
 
   if (error) {
+    console.error(error)
     throw error
   }
 
   return {
-    id: data.id,
-    isFallback: false
+    attemptId: data,
   }
 }

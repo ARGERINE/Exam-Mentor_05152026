@@ -18,21 +18,16 @@ export default function CustomExamPage() {
 
   const handleCustomExam = async () => {
     try {
-      const attempt = await createAttempt({
-        examCode: 'NEET',
-        attemptType: 'custom',
-        config: {
-          questions,
-          duration
-        }
-      })
+     const attempt = await createAttempt({
+  examId: '056f6347-d963-4c82-a3ec-eff587dfc99c',
+})
 
-      if (!attempt || !attempt.id) {
-        console.error("Invalid attempt response")
-        return
-      }
+     if (!attempt || !attempt.attemptId) {
+  console.error("Invalid attempt response")
+  return
+}
 
-      router.push(`/exams/attempt?attempt_id=${attempt.id}`)
+router.push(`/exams/attempt?attempt_id=${attempt.attemptId}`)
 
     } catch (err) {
       console.error("Custom exam failed:", err)

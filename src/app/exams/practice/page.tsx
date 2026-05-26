@@ -30,29 +30,17 @@ export default function PracticeConfirmationPage() {
   
     try {
       const attempt = await createAttempt({
-  examCode: 'NEET',
-  attemptType: 'practice',
-
-  config: {
-    subject: {
-  id: selectedSubject,
-  name: selectedSubject
-},
-
-    chapters: selectedChapter
-      ? [selectedChapter]
-      : []
-  }
+  examId: '056f6347-d963-4c82-a3ec-eff587dfc99c',
 })
-  
-      console.log("Attempt:", attempt)
-  
-      if (!attempt || !attempt.id) {
-        console.error("Invalid attempt response")
-        return
-      }
-  
-      router.push(`/exams/attempt?attempt_id=${attempt.id}`)
+
+console.log("Attempt:", attempt)
+
+if (!attempt || !attempt.attemptId) {
+  console.error("Invalid attempt response")
+  return
+}
+
+router.push(`/exams/attempt?attempt_id=${attempt.attemptId}`)
   
     } catch (err) {
       console.error("Practice start failed:", err)

@@ -26,23 +26,15 @@ export default function SectionalPage() {
 
     try {
       const attempt = await createAttempt({
-  examCode: "NEET",
-  attemptType: "sectional",
-
-  config: {
-    subject: {
-      id: selectedSubject,
-      name: selectedSubject,
-    }
-  }
+  examId: 'edb6ec98-6423-4b55-9998-c68281bc60fa',
 });
 
-      if (!attempt || !attempt.id) {
-        console.error("Invalid attempt response");
-        return;
-      }
+if (!attempt || !attempt.attemptId) {
+  console.error("Invalid attempt response");
+  return;
+}
 
-      router.push(`/exams/attempt?attempt_id=${attempt.id}`);
+router.push(`/exams/attempt?attempt_id=${attempt.attemptId}`);
     } catch (err) {
       console.error("Sectional start failed:", err);
     }
@@ -146,5 +138,5 @@ export default function SectionalPage() {
         </div>
       </main>
     </MentorLayout>
-  );
+  )
 }

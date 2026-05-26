@@ -14,11 +14,10 @@ export default function MockConfirmationPage() {
   const handleStartMock = async () => {
   try {
     const attempt = await createAttempt({
-      examCode: 'NEET', // keep simple for now
-      attemptType: 'mock'
-    })
+  examId: '59242cb9-c0f7-4a97-923c-5ad0e9fd2d49'
+})
 
-    router.push(`/exams/attempt?attempt_id=${attempt.id}`)
+    router.push(`/exams/attempt?attempt_id=${attempt.attemptId}`)
 
   } catch (err) {
     console.error("Failed to start mock:", err)
