@@ -36,15 +36,38 @@ export default function MockConfirmationPage() {
                 <div><p className="text-[10px] font-bold text-slate-400 uppercase">Duration</p><p className="text-sm font-bold">180 min</p></div>
                 <div><p className="text-[10px] font-bold text-slate-400 uppercase">Mode</p><p className="text-sm font-bold text-primary">Standard</p></div>
               </div>
-              <div className="space-y-4">
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Composition</p>
-                <div className="space-y-3">
-                  <div className="flex justify-between items-center"><span className="text-xs font-bold text-slate-600">Physics</span><span className="text-xs font-bold text-slate-400">45 Qs</span></div>
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-blue-500" style={{ width: '25%' }} /></div>
-                  <div className="flex justify-between items-center"><span className="text-xs font-bold text-slate-600">Biology</span><span className="text-xs font-bold text-slate-400">90 Qs</span></div>
-                  <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden"><div className="h-full bg-amber-500" style={{ width: '50%' }} /></div>
-                </div>
-              </div>
+              <div className="border-t pt-6">
+  <div className="grid grid-cols-3 text-center gap-4">
+    
+    <div className="border-r">
+      <p className="text-[10px] font-bold text-slate-400 uppercase">
+        Physics
+      </p>
+      <p className="text-sm font-bold text-slate-700">
+        45 Qs
+      </p>
+    </div>
+
+    <div className="border-r">
+      <p className="text-[10px] font-bold text-slate-400 uppercase">
+        Chemistry
+      </p>
+      <p className="text-sm font-bold text-slate-700">
+        45 Qs
+      </p>
+    </div>
+
+    <div>
+      <p className="text-[10px] font-bold text-slate-400 uppercase">
+        Biology
+      </p>
+      <p className="text-sm font-bold text-slate-700">
+        90 Qs
+      </p>
+    </div>
+
+  </div>
+</div>
               <div className="p-4 bg-primary/5 rounded-2xl border border-primary/10"><p className="text-[11px] font-medium text-slate-600 text-center italic">This result will update your rank band and performance analytics.</p></div>
               <Button onClick={handleStartMock} className="w-full h-14 rounded-2xl font-bold text-base shadow-xl">Begin Examination <ArrowRight className="w-4 h-4 ml-2" /></Button>
             </CardContent>

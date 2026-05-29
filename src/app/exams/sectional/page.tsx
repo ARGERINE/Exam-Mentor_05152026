@@ -25,8 +25,16 @@ export default function SectionalPage() {
     if (!selectedSubject) return;
 
     try {
-      const attempt = await createAttempt({
+      const subjectMap: Record<string, string> = {
+  Physics: '3e46469e-0f17-40e2-962b-999098b6f447',
+  Chemistry: '6ca51152-238f-457a-8d63-25e71e9cd0ea',
+  Biology: 'dfd1cb26-9fbb-46c5-a322-f3676e1103e3',
+};
+
+const attempt = await createAttempt({
   examId: 'edb6ec98-6423-4b55-9998-c68281bc60fa',
+  subject: subjectMap[selectedSubject],
+  mode: 'sectional',
 });
 
 if (!attempt || !attempt.attemptId) {
