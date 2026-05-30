@@ -30,7 +30,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Zap
+  Zap,
+  BookOpen
 } from 'lucide-react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
@@ -41,19 +42,30 @@ import { getSupabase } from '@/lib/supabase/client'
 interface QuestionResult {
   id: string
   text: string
+
   status: 'correct' | 'incorrect' | 'skipped'
+
   userAnswer: string
+  userAnswerText: string
+
   correctAnswer: string
+  correctAnswerText: string
+
   confidence: string
   time: string
   timeSeconds: number
+
   explanation: string
+
   behaviorTag: string
   behavioralInsight: string
+
   timeInterpretation: string
   expectedTime: number
+
   subjectId: string
   chapterId: string
+
   difficulty: string
   taxonomyCategory: string
 }
@@ -136,6 +148,10 @@ function ResultsContent() {
     questions:question_id (
   id,
   question_text,
+  option_a,
+  option_b,
+  option_c,
+  option_d,
   correct_option,
   explanation,
   expected_time_seconds,
@@ -200,12 +216,25 @@ if (tag === 'overconfident') overconfident++
 if (tag === 'concept_gap') conceptGap++
 if (tag === 'correct_slow') correctSlow++
 
+const optionMap: Record<string, string> = {
+  A: q.option_a || '',
+  B: q.option_b || '',
+  C: q.option_c || '',
+  D: q.option_d || '',
+}
+
             return {
               id: q.id,
               text: q.question_text,
               status,
               userAnswer: ans.selected_option || '—',
+              userAnswerText:
+              ans.selected_option
+              ? optionMap[ans.selected_option] || ''
+              : 'Not Attempted',
               correctAnswer: q.correct_option,
+              correctAnswerText:
+              optionMap[q.correct_option] || '',
               confidence: ans.confidence_level || 'MEDIUM',
               time: `${timeTaken}s`,
               timeSeconds: timeTaken,
@@ -437,14 +466,43 @@ await supabase
                     <AccordionContent className="px-10 pb-8 space-y-6">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="p-4 rounded-xl border border-slate-100 space-y-2">
-                          <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Your Response</p>
-                          <p className="text-sm font-bold text-slate-700">{q.userAnswer}</p>
-                        </div>
-                        <div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 space-y-2">
-                          <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">Correct Solution</p>
-                          <p className="text-sm font-bold text-slate-700">{q.correctAnswer}</p>
-                        </div>
-                      </div>
+  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+    Your Response
+  </p>
+
+  <p className="text-sm font-bold text-slate-700">
+  {q.userAnswer}
+</p>
+
+<p className="text-xs text-slate-500 leading-relaxed">
+  {q.userAnswerText}
+</p>
+</div>
+
+<div className="p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 space-y-2">
+  <p className="text-[9px] font-bold text-emerald-600 uppercase tracking-widest">
+    Correct Solution
+  </p>
+
+ <p className="text-sm font-bold text-slate-700">
+  {q.correctAnswer}
+</p>
+
+<p className="text-xs text-slate-500 leading-relaxed">
+  {q.correctAnswerText}
+</p>
+</div>
+  </div>
+                      
+  <div className="flex items-center gap-2">
+  <BookOpen className="h-4 w-4 text-blue-600" />
+  <span className="text-xs font-bold tracking-widest uppercase text-slate-700">
+    Explanation
+  </span>
+  <p className="text-sm italic leading-relaxed text-slate-700">
+  {q.explanation}
+</p>
+</div>
 
                       <div className="grid grid-cols-3 gap-4">
                         <div className="text-center p-3 bg-slate-50 rounded-xl">
@@ -465,13 +523,7 @@ await supabase
                       </div>
 
                       <div className="p-6 bg-slate-50/50 rounded-2xl border border-slate-100 space-y-6">
-                        <div className="space-y-3">
-                          <h5 className="text-[10px] font-black text-slate-900 uppercase tracking-widest flex items-center gap-2">
-                            <Target className="w-3 h-3" /> Academic Logic
-                          </h5>
-                          <p className="text-sm text-slate-600 leading-relaxed italic">{q.explanation}</p>
-                        </div>
-                        <div className="space-y-3 pt-6 border-t border-slate-200">
+                         <div className="space-y-3 pt-6 border-t border-slate-200">
                           <h5 className="text-[10px] font-black text-primary uppercase tracking-widest flex items-center gap-2">
                             <Brain className="w-3 h-3" /> {q.status === 'correct' ? 'Why This Response Succeeded' : 'Why This Response Failed'}
                           </h5>
