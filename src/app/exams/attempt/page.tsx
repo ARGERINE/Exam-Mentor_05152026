@@ -102,6 +102,8 @@ useEffect(() => {
 
   const accumulatedTimeRef = useRef<Record<string, number>>({})
 
+  const initialTimeRef = useRef(0)
+
   // ─────────────────────────────────────────────────────────────
   // Fetch Questions
   // ─────────────────────────────────────────────────────────────
@@ -113,6 +115,44 @@ useEffect(() => {
       if (!supabase || !attemptId) {
         return
       }
+
+    const { data: attemptMeta } = await supabase
+  .from("attempts")
+  .select(`
+    exam_id,
+    total_time_seconds
+  `)
+  .eq("attempt_id", attemptId)
+  .single()
+
+console.log(
+  "ATTEMPT META:",
+  attemptMeta
+)
+
+if (attemptMeta?.total_time_seconds) {
+
+  setTimeLeft(
+    attemptMeta.total_time_seconds
+  )
+
+} else if (attemptMeta?.exam_id) {
+
+  const { data: examMeta } = await supabase
+    .from("exams")
+    .select("duration_minutes")
+    .eq("id", attemptMeta.exam_id)
+    .single()
+
+  if (examMeta?.duration_minutes) {
+
+    setTimeLeft(
+      examMeta.duration_minutes * 60
+    )
+
+  }
+
+}
 
       setLoadingQuestions(true)
 
@@ -476,7 +516,8 @@ const handleSubmitExam = async () => {
       })
     }
 
-    const totalTimeSpent = (3 * 60 * 60) - timeLeft
+    const totalTimeSpent =
+    initialTimeRef.current - timeLeft
 
     const { error } = await supabase
       .from('attempts')

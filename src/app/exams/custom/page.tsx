@@ -170,6 +170,7 @@ const handleCustomExam = async () => {
       subject: selectedSubjects,
       chapter: selectedChapters,
       questions,
+      duration,
       mode: 'custom',
     })
 

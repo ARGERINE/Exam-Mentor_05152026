@@ -5,6 +5,7 @@ type CreateAttemptParams = {
   subject?: string[] | string | null
   chapter?: string[] | string | null
   questions?: number
+  duration?: number
   mode?: string
 }
 
@@ -13,6 +14,7 @@ export async function createAttempt({
   subject,
   chapter,
   questions,
+  duration,
   mode,
 }: CreateAttemptParams) {
 
@@ -60,6 +62,7 @@ if (mode === 'custom') {
       p_subject_ids: subject,
       p_chapter_ids: chapter,
       p_question_count: questions,
+      p_duration_minutes: duration,
     }
   )
 
