@@ -51,7 +51,12 @@ import {
 import { cn } from '@/lib/utils'
 import { toast } from '@/hooks/use-toast'
 
-type ViewMode = 'form' | 'analysis' | 'result';
+type ViewMode =
+  | 'form'
+  | 'analysis'
+  | 'result'
+  | 'current-plan'
+  | 'history';
 
 interface PredictiveItem {
   title: string;
@@ -63,7 +68,7 @@ interface ReasoningBlock {
   subLabel: string;
   insight: string;
   explanation: string;
-  hasHighlight?: boolean;
+  hasHighlight?: boolean;  
 }
 
 const insightMap: Record<string, Record<string, string>> = {
@@ -176,8 +181,16 @@ const user = {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('form')
+  useEffect(() => {
+  console.log(
+    'VIEW MODE:',
+    viewMode
+  )
+}, [viewMode])
   const [analysisPhase, setAnalysisPhase] = useState(1)
-  
+
+  const [activePlan, setActivePlan] = useState<any>(null)
+  const [planHistory, setPlanHistory] = useState<any[]>([])
   const [insightHistory, setInsightHistory] = useState<string[]>([])
   const [activeCategory, setActiveCategory] = useState<'academic' | 'subjects' | 'structure' | 'behavior'>('academic')
   const [isInsightVisible, setIsInsightVisible] = useState(false)
@@ -187,30 +200,33 @@ const user = {
   const firstName = user?.displayName?.split(' ')[0] || user?.email?.split('@')[0] || 'Student';
 
   type StudyPlanFormData = {
-  academic_level: string
-  exam_target: string
-  strength_subjects: string[]
-  weak_subjects: string[]
-  preferred_learning_method: string
-  note_taking_style: string[]
-  practice_method_preference: string
-  schedule_preference: string
-  study_session_preference: string
-  study_time_preference: string
-  available_study_time_on_weekdays: string
-  available_study_time_on_saturday: string
-  available_study_time_on_sunday: string
-  relaxation_day: string
-  exam_anxiety_level: string
-  distracted_easily: string
-  main_challenges_while_studying: string[]
-  willingness_to_adjust_lifestyle_for_study: string
-  preferred_study_plan_format: string[]
+academic_level: string
+exam_target: string
+target_exam_date: string
+strength_subjects: string[]
+weak_subjects: string[]
+preferred_learning_method: string
+note_taking_style: string[]
+practice_method_preference: string
+schedule_preference: string
+study_session_preference: string
+study_time_preference: string
+available_study_time_on_weekdays: string
+available_study_time_on_saturday: string
+available_study_time_on_sunday: string
+relaxation_day: string
+exam_anxiety_level: string
+distracted_easily: string
+main_challenges_while_studying: string[]
+willingness_to_adjust_lifestyle_for_study: string
+preferred_study_plan_format: string[]
+plan_name: string
 }
 
 const [formData, setFormData] = useState<StudyPlanFormData>({
   academic_level: '',
   exam_target: '',
+  target_exam_date: '',
   strength_subjects: [],
   weak_subjects: [],
   preferred_learning_method: '',
@@ -227,24 +243,79 @@ const [formData, setFormData] = useState<StudyPlanFormData>({
   distracted_easily: '',
   main_challenges_while_studying: [],
   willingness_to_adjust_lifestyle_for_study: '',
-  preferred_study_plan_format: []
+  preferred_study_plan_format: [],
+  plan_name: ''
 })
 
+const loadActivePlan = async () => {
+  if (!supabase) return
+
+  const { data: userData } =
+    await supabase.auth.getUser()
+
+  const user = userData?.user
+
+  if (!user) return
+
+  const { data } = await supabase
+    .from('user_baselines')
+    .select('*')
+    .eq('user_id', user.id)
+    .eq('is_active', true)
+    .single()
+
+  console.log('ACTIVE PLAN', data)
+
+  if (data) {
+    setActivePlan(data)
+    setViewMode('current-plan')
+  }
+}
+
+const loadPlanHistory = async () => {
+  if (!supabase) return
+
+  const { data: userData } =
+    await supabase.auth.getUser()
+
+  const user = userData?.user
+
+  if (!user) return
+
+  const { data } = await supabase
+    .from('user_baselines')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('version_number', {
+      ascending: false
+    })
+
+  setPlanHistory(data || [])
+}
+
   useEffect(() => {
-    if (insightHistory.length === 0) return;
-    
-    const fullText = insightHistory.join(" ");
-    let i = 0;
-    setDisplayedText("");
-    
-    const interval = setInterval(() => {
-      setDisplayedText(fullText.substring(0, i + 1));
-      i++;
-      if (i >= fullText.length) clearInterval(interval);
-    }, 25);
-    
-    return () => clearInterval(interval);
-  }, [insightHistory]);
+  loadActivePlan()
+}, [])
+
+useEffect(() => {
+  if (insightHistory.length === 0) return;
+
+  const fullText = insightHistory.join(" ");
+  let i = 0;
+
+  setDisplayedText("");
+
+  const interval = setInterval(() => {
+    setDisplayedText(fullText.substring(0, i + 1));
+    i++;
+
+    if (i >= fullText.length) {
+      clearInterval(interval);
+    }
+  }, 25);
+
+  return () => clearInterval(interval);
+}, [insightHistory]);
 
   const triggerInsight = (field: string, value: string, category: 'academic' | 'subjects' | 'structure' | 'behavior') => {
     if (isGeneratingPlan) return;
@@ -463,18 +534,94 @@ if (!user) {
   return;
 }
 
+// NEW STEP 2A: Monthly limit
+
+const firstDayOfMonth = new Date()
+firstDayOfMonth.setDate(1)
+firstDayOfMonth.setHours(0, 0, 0, 0)
+
+const { count: monthlyCount } = await supabase
+  .from('user_baselines')
+  .select('*', {
+    count: 'exact',
+    head: true
+  })
+  .eq('user_id', user.id)
+  .gte('created_at', firstDayOfMonth.toISOString())
+
+if ((monthlyCount ?? 0) >= 5) {
+  alert(
+    'You have already generated 5 Study Plans this month.'
+  )
+  return
+}
+
+// NEW STEP 2B: Archive existing active plan
+
+const { error: deactivateError } = await supabase
+  .from('user_baselines')
+  .update({
+    is_active: false
+  })
+  .eq('user_id', user.id)
+  .eq('exam_code', formData.exam_target)
+  .eq('is_active', true)
+
+if (deactivateError) {
+  console.error(
+    "Deactivate baseline error:",
+    deactivateError
+  )
+  return
+}
+
+  // NEW STEP 2C: Calculate next version
+
+const { data: versions } = await supabase
+  .from('user_baselines')
+  .select('version_number')
+  .eq('user_id', user.id)
+  .eq('exam_code', formData.exam_target)
+  .order('version_number', {
+    ascending: false
+  })
+  .limit(1)
+
+const nextVersion =
+  versions && versions.length > 0
+    ? versions[0].version_number + 1
+    : 1
+
 // STEP 2: Save baseline
 const { error: baselineError } = await supabase
   .from('user_baselines')
   .insert({
-    user_id: user.id,
-    exam_code: formData.exam_target,
-    target_exam_date: null,
-    weekly_study_hours: Number(formData.available_study_time_on_weekdays || 0) * 5,
-    subject_self_rating: formData,
-    is_active: true,
-    version_number: 1
-  });
+  user_id: user.id,
+  exam_code: formData.exam_target,
+  target_exam_date: formData.target_exam_date,
+
+  weekly_study_hours:
+    Number(formData.available_study_time_on_weekdays || 0) * 5,
+
+  preparation_stage: 'Foundation',
+
+  subject_self_rating: formData,
+
+  subject_confidence: {
+    strength_subjects: formData.strength_subjects,
+    weak_subjects: formData.weak_subjects
+    
+  },
+
+plan_name:
+  formData.plan_name || "Untitled Study Plan",
+
+is_user_named:
+  !!formData.plan_name,
+
+  is_active: true,
+  version_number: nextVersion
+});
 
 if (baselineError) {
   console.error("Baseline error:", baselineError);
@@ -482,13 +629,18 @@ if (baselineError) {
 }
 
 // STEP 3: Generate weekly plan
-const { error: planError } = await supabase.rpc('generate_weekly_plan', {
+/*const { error: planError } = await supabase.rpc('generate_weekly_plan', {
   p_user_id: user.id,
   p_exam_code: formData.exam_target
 });
 
 if (planError) {
   console.error("Plan error:", planError);
+  return;
+}*/
+
+if (!formData.exam_target || !formData.target_exam_date) {
+  alert("Please select Exam Target and Target Exam Date");
   return;
 }
 
@@ -571,6 +723,72 @@ if (planError) {
           viewMode === 'analysis' && "blur-[4px] pointer-events-none opacity-40"
         )}>
           
+          {viewMode === 'current-plan' && activePlan && (
+
+  <div className="space-y-6">
+
+    <Card className="rounded-[2rem] shadow-sm">
+      <CardContent className="p-8 space-y-6">
+
+        <div>
+          <h2 className="text-3xl font-bold">
+            Current Study Plan
+          </h2>
+
+          <p className="text-slate-500 mt-2">
+            Active Version {activePlan.version_number}
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <p>
+            <strong>Exam:</strong> {activePlan.exam_code}
+          </p>
+
+          <p>
+            <strong>Target Date:</strong> {activePlan.target_exam_date}
+          </p>
+        </div>
+
+        <div className="flex flex-wrap gap-4">
+
+          <Button
+            onClick={() => {
+              setBaseline(activePlan)
+              setViewMode('result')
+            }}
+          >
+            View Current Plan
+          </Button>
+
+          <Button
+            variant="outline"
+            onClick={() => {
+              setViewMode('form')
+            }}
+          >
+            Generate New Version
+          </Button>
+
+          <Button
+  variant="outline"
+  onClick={async () => {
+    await loadPlanHistory()
+    setViewMode('history')
+  }}
+>
+  Study Plan History
+</Button>
+
+        </div>
+
+      </CardContent>
+    </Card>
+
+  </div>
+
+)}
+
           {viewMode === 'form' && (
             <>
               <header className="space-y-4">
@@ -614,7 +832,7 @@ if (planError) {
                     </div>
 
                     <div className="space-y-3">
-                      <Label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Exam Target</Label>
+                      <Label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Target Exam</Label>
                       <RadioGroup 
                         value={formData.exam_target} 
                         onValueChange={(v) => handleRadioChange('exam_target', v, 'academic')}
@@ -630,6 +848,28 @@ if (planError) {
                         ))}
                       </RadioGroup>
                     </div>
+                    {/* Target Exam Date */}
+<div className="space-y-3">
+  <Label className="text-[11px] font-bold uppercase tracking-widest text-slate-400">
+    TARGET EXAM DATE
+  </Label>
+
+  <Input
+    type="date"
+    value={formData.target_exam_date}
+    onChange={(e) =>
+      setFormData(prev => ({
+        ...prev,
+        target_exam_date: e.target.value
+      }))
+    }
+    className="h-[52px]"
+  />
+
+  <p className="text-xs text-slate-500">
+    Select the date of your target examination.
+  </p>
+</div>
 
                     <div className="space-y-5">
                       <div className="space-y-3">
@@ -979,22 +1219,147 @@ if (planError) {
                     </div>
                   </CardContent>
                 </Card>
+<div className="space-y-3">
+  <label className="text-sm font-medium">
+    Study Plan Name
+  </label>
 
-                <div className="pt-2 flex flex-col items-center">
-                  <Button 
-                    type="submit" 
-                    className="w-full max-w-[360px] h-16 rounded-2xl text-base font-bold cursor-pointer group relative overflow-hidden mb-2"
-                  >
-                    <span className="relative z-10 flex items-center gap-2">
-                      {loading ? "Analyzing Profile..." : "Create My Baseline Study Plan"}
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Button>
+  <input
+  type="text"
+  value={formData.plan_name}
+  placeholder="e.g. Foundation Builder"
+  onChange={(e) =>
+    setFormData(prev => ({
+      ...prev,
+      plan_name: e.target.value
+    }))
+  }
+  className="w-full border rounded-lg px-4 py-3"
+/>
+
+<div className="text-xs text-muted-foreground mt-2">
+  Suggested Names
+</div>
+
+<div className="flex flex-wrap gap-2 mb-6">
+  {[
+    "Foundation Builder",
+    "Concept Recovery Plan",
+    "High Accuracy Focus Plan",
+    "Vacation Acceleration Plan",
+    "Rank Improvement Plan",
+    "Final 180-Day Push"
+  ].map((name) => (
+    <button
+      key={name}
+      type="button"
+      onClick={() =>
+        setFormData(prev => ({
+          ...prev,
+          plan_name: name
+        }))
+      }
+      className="px-3 py-1 border rounded-full text-sm hover:bg-muted"
+    >
+      {name}
+    </button>
+  ))}
+</div>
+
+<Button
+  type="submit"
+  className="w-full max-w-[360px] h-16 rounded-2xl text-base font-bold cursor-pointer group relative overflow-hidden mb-2"
+>
+  <span className="relative z-10 flex items-center gap-2">
+    {loading
+      ? "Analyzing Profile..."
+      : "Create My Baseline Study Plan"}
+  </span>
+  <div className="absolute inset-0 bg-gradient-to-r from-primary via-blue-600 to-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+</Button>
+              </div>
+            </form>
+          </>
+          )} 
+
+          {viewMode === 'history' && (
+
+  <Card className="rounded-[2rem] shadow-sm">
+    <CardContent className="p-8">
+
+      <div className="mb-8">
+        <h2 className="text-3xl font-bold">
+          Study Plan History
+        </h2>
+
+        <p className="text-slate-500 mt-2">
+          Previous versions of your study plans
+        </p>
+      </div>
+
+      <div className="space-y-4">
+
+        {planHistory.map((plan) => (
+
+          <Card
+            key={plan.id}
+            className="border"
+          >
+            <CardContent className="p-5">
+
+              <div className="flex items-center justify-between">
+
+                <div>
+
+                  <div className="font-semibold text-lg">
+                    {plan.plan_name || 'Untitled Study Plan'}
+                  </div>
+
+                  <div className="text-sm text-slate-500">
+                    Version {plan.version_number}
+                  </div>
+
+                  {plan.is_active && (
+                    <Badge className="mt-2">
+                      Current Active Plan
+                    </Badge>
+                  )}
+
                 </div>
-              </form>
-            </>
-          )}
 
+                <Button
+                  onClick={() => {
+                    setBaseline(plan)
+                    setViewMode('result')
+                  }}
+                >
+                  View
+                </Button>
+
+              </div>
+
+            </CardContent>
+          </Card>
+
+        ))}
+
+      </div>
+
+      <div className="mt-8">
+        <Button
+          variant="outline"
+          onClick={() =>
+            setViewMode('current-plan')
+          }
+        >
+          Back
+        </Button>
+      </div>
+
+    </CardContent>
+  </Card>
+
+)}                 
           {viewMode === 'result' && baseline && (
             <div id="results-section" className="space-y-10 py-8 animate-in fade-in slide-in-from-bottom-8 duration-1000">
                <header className="flex flex-col md:flex-row justify-between items-center gap-6 text-center md:text-left bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100">
@@ -1003,7 +1368,10 @@ if (planError) {
                     <ShieldCheck className="w-8 h-8 text-emerald-500" />
                   </div>
                   <div className="space-y-1">
-                    <h2 className="text-2xl md:text-[28px] font-headline font-bold text-slate-900 tracking-tight">Your Baseline Study Plan is Ready</h2>
+                    <h2>
+                    {baseline?.plan_name || "My Study Plan"}
+                    </h2>
+                    <p>Your Baseline Study Plan is Ready</p>
                     <p className="text-sm font-medium text-slate-500">This plan will be automatically reviewed every 3 months as per your progress.</p>
                   </div>
                 </div>
@@ -1047,8 +1415,8 @@ if (planError) {
               </div>
             </div>
           )}
-        </div>
 
+        </div>
         {viewMode === 'analysis' && (
           <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-white/85 backdrop-blur-md p-6">
             <div className="max-w-2xl w-full text-center space-y-8">
