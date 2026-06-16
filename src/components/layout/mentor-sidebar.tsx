@@ -97,13 +97,21 @@ const SECTIONS: NavSection[] = [
     ]
   },
   {
-    title: "Study Plan",
-    items: [
-      { name: "My Study Plan", href: "/study-plan", icon: CalendarDays },
-      { name: "Syllabus Coverage", href: "/syllabus-coverage", icon: Layers },
-      { name: "Weekly Roadmap", href: "/weekly-roadmap", icon: CalendarCheck },
-    ]
-  },
+  title: "Study Plan",
+  items: [
+    { name: "My Study Plan", href: "/study-plan", icon: CalendarDays },
+
+    { 
+      name: "My Learning Calendar", 
+      href: "/my-learning-calendar", 
+      icon: CalendarCheck 
+    },
+
+    { name: "Syllabus Coverage", href: "/syllabus-coverage", icon: Layers },
+
+    { name: "Weekly Roadmap", href: "/weekly-roadmap", icon: CalendarDays },
+  ]
+},
   {
     title: "Improvement Hub",
     items: [

@@ -180,6 +180,8 @@ const user = {
   const { setExamContext, baseline, setBaseline } = useStudentStore()
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [loadingPlan, setLoadingPlan] =
+  useState(true)
   const [viewMode, setViewMode] = useState<ViewMode>('form')
   useEffect(() => {
   console.log(
@@ -248,14 +250,20 @@ const [formData, setFormData] = useState<StudyPlanFormData>({
 })
 
 const loadActivePlan = async () => {
-  if (!supabase) return
+  if (!supabase) {
+    setLoadingPlan(false)
+    return
+  }
 
   const { data: userData } =
     await supabase.auth.getUser()
 
   const user = userData?.user
 
-  if (!user) return
+  if (!user) {
+    setLoadingPlan(false)
+    return
+  }
 
   const { data } = await supabase
     .from('user_baselines')
@@ -264,12 +272,12 @@ const loadActivePlan = async () => {
     .eq('is_active', true)
     .single()
 
-  console.log('ACTIVE PLAN', data)
-
   if (data) {
     setActivePlan(data)
     setViewMode('current-plan')
   }
+
+  setLoadingPlan(false)
 }
 
 const loadPlanHistory = async () => {
@@ -291,6 +299,57 @@ const loadPlanHistory = async () => {
     })
 
   setPlanHistory(data || [])
+}
+
+const activatePlan = async (
+  planId: string
+) => {
+
+  if (!supabase) return
+
+  const { data: userData } =
+    await supabase.auth.getUser()
+
+  const user = userData?.user
+
+  if (!user) return
+
+  const { error: deactivateError } =
+    await supabase
+      .from('user_baselines')
+      .update({
+        is_active: false
+      })
+      .eq('user_id', user.id)
+
+  if (deactivateError) {
+    console.error(deactivateError)
+    return
+  }
+
+  const { error: activateError } =
+    await supabase
+      .from('user_baselines')
+      .update({
+        is_active: true
+      })
+      .eq('id', planId)
+
+  if (activateError) {
+    console.error(activateError)
+    return
+  }
+
+  await loadActivePlan()
+  await loadPlanHistory()
+
+  toast({
+    title: "Study Plan Activated",
+    description:
+      "Selected version is now active."
+  })
+
+  setViewMode('current-plan')
 }
 
   useEffect(() => {
@@ -699,6 +758,20 @@ if (!formData.exam_target || !formData.target_exam_date) {
       }
     };
   }, [baseline, formData, predictiveInsights]);
+
+  if (loadingPlan) {
+  return (
+    <MentorLayout>
+      <main className="flex items-center justify-center min-h-[60vh]">
+        <div className="text-center">
+          <div className="text-lg font-medium">
+            Loading Study Plan...
+          </div>
+        </div>
+      </main>
+    </MentorLayout>
+  )
+}
 
   return (
     <MentorLayout>
@@ -1334,7 +1407,18 @@ if (!formData.exam_target || !formData.target_exam_date) {
                   }}
                 >
                   View
+                  
                 </Button>
+                {!plan.is_active && (
+    <Button
+      variant="outline"
+      onClick={async () => {
+        await activatePlan(plan.id)
+      }}
+    >
+      Activate
+    </Button>
+  )}
 
               </div>
 
