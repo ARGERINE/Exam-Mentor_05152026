@@ -92,6 +92,7 @@ const SECTIONS: NavSection[] = [
       { name: "Practice", href: "/exams/practice", icon: Zap },
       { name: "Revision", href: "/exams/revision", icon: RefreshCcw },
       { name: "Sectional Tests", href: "/exams/sectional", icon: LayoutGrid },
+      { name: "Numerical Drill", href: "/exams/numerical-drill" , icon: Sliders },
       { name: "Mock Tests", href: "/exams/mock", icon: Activity },
       { name: "Custom Exam", href: "/exams/custom", icon: Sliders },
     ]

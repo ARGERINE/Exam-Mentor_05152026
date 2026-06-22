@@ -283,6 +283,36 @@ await supabase
   })
   .eq('attempt_id', attemptId)
 
+  // =====================================================
+// LEARNING CALENDAR COMPLETION ENGINE
+// =====================================================
+
+if (
+  attempt.attempt_origin === 'LEARNING_CALENDAR' &&
+  attempt.calendar_stage === 'P1' &&
+  attempt.chapter_id
+) {
+  const passed = finalAccuracy >= 40
+
+  await supabase
+    .from('learning_calendar_items')
+    .update({
+      practice_1_attempted: true,
+      practice_1_score: finalAccuracy,
+      practice_1_passed: passed,
+
+      ...(passed
+        ? {
+            status: 'COMPLETED',
+            actual_completion_date: new Date()
+              .toISOString()
+              .split('T')[0],
+          }
+        : {}),
+    })
+    .eq('chapter_id', attempt.chapter_id)
+    .eq('calendar_id', attempt.calendar_item_id)
+}
         setResultsData({
           examName: attempt.attempt_type ? `${attempt.attempt_type} Result` : 'NEET Simulation',
           score: (correct * 4) - incorrect,

@@ -14,6 +14,8 @@ const EXAM_TYPES = [
   { id: 'practice', title: 'Practice Mode', description: 'Chapter-wise learning and conceptual grounding', questions: 40, duration: 'No time limit', href: '/exams/practice' },
   { id: 'sectional', title: 'Sectional Test', description: 'Subject-specific assessment', questions: 50, duration: '60 minutes', href: '/exams/sectional' },
   { id: 'revision', title: 'Revision Mode', description: 'Targeted memory decay remediation', questions: 40, duration: 'No time limit', href: '/exams/revision' },
+  { id: 'numerical-drill', title: 'Numerical Drill', description: 'Master calculation-intensive questions through focused numerical problem solving', questions: 30, duration: '90 minutes', href: '/exams/numerical-drill'
+},
   { id: 'mock', title: 'Mock Test', description: 'Full-length NEET simulation', questions: 180, duration: '180 minutes', href: '/exams/mock' },
   { id: 'custom', title: 'Customized Exam', description: 'User defined parameters', questions: 'Custom', duration: 'Custom', href: '/exams/custom' },
 ]

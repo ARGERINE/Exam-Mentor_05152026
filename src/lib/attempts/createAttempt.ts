@@ -7,6 +7,11 @@ type CreateAttemptParams = {
   questions?: number
   duration?: number
   mode?: string
+
+  calendarItemId?: string
+  chapterName?: string
+  calendarStage?: string
+  attemptOrigin?: string
 }
 
 export async function createAttempt({
@@ -16,6 +21,11 @@ export async function createAttempt({
   questions,
   duration,
   mode,
+
+  calendarItemId,
+  chapterName,
+  calendarStage,
+  attemptOrigin,
 }: CreateAttemptParams) {
 
   const supabase = getSupabase()
@@ -35,13 +45,18 @@ export async function createAttempt({
 
   if (mode === 'practice') {
   const { data, error } = await supabase.rpc(
-    'generate_practice_attempt',
-    {
-      p_user_id: user.id,
-      p_subject_id: subject,
-      p_chapter_id: chapter,
-    }
-  )
+  'generate_practice_attempt',
+  {
+    p_user_id: user.id,
+    p_subject_id: subject,
+    p_chapter_id: chapter,
+
+    p_calendar_item_id: calendarItemId,
+    p_chapter_name: chapterName,
+    p_calendar_stage: calendarStage,
+    p_attempt_origin: attemptOrigin,
+  }
+)
 
   if (error) {
     console.error(error)
@@ -83,6 +98,35 @@ if (mode === 'sectional') {
     {
       p_user_id: user.id,
       p_subject_id: subject,
+    }
+  )
+
+  if (error) {
+    console.error(error)
+    throw error
+  }
+
+  return {
+    attemptId: data,
+  }
+}
+
+if (mode === 'numerical_drill') {
+
+  console.log("RPC PAYLOAD", {
+  p_subject_id: subject,
+  p_chapter_id: chapter,
+  p_calendar_item_id: calendarItemId,
+  p_chapter_name: chapterName,
+  p_calendar_stage: calendarStage,
+  p_attempt_origin: attemptOrigin,
+})
+  const { data, error } = await supabase.rpc(
+    'generate_numerical_drill_attempt',
+    {
+      p_user_id: user.id,
+      p_subject_id: subject,
+      p_chapter_id: chapter,
     }
   )
 
